@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud User Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class=" container">
+        <h1>Cloud User Database</h1>
+        <p class="subtitle">Connected to live cloud PostgreSQL cluster</p>
+        <form id="userForm">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="e.g. Sachin" required>
+            </div>
+            <div class="form-group">
+                <label for="role">Job Title / Role</label>
+                <input type="text" id="role" placeholder="e.g. Backend Lead" required>
+            </div>
+            <button type="submit" class="btn">Add to Database</button>
+        </form>
+        <div class="card">
+            <h3>Active Directory Users</h3>
+            <div id="usersList" class="users-list">
+                <p class="loading">Loading Database Connections...</p>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
