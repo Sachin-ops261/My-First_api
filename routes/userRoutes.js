@@ -1,6 +1,29 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken'); // import jwt package
 const pool = require('../config/db');//import our database pool configuration 
+
+//GATEKEEPER MIDDLEWARE : verifies if incoming request has a valid token pass
+function authenticateToken(req, res, next){
+    //read the authorization header from the incoming http request
+    const authHeader = req.headers['authorization'];
+    //headers usually say: "bearer <TOKEN_STRING". we split it to grab just the token
+    const token = authHeader && authHeader.split(' ')[1];
+    if(!token){
+        return res.status(401).json({error: "access denied: missing authentication token!"});
+    }
+
+    //verify token calidity against our secret environment passphrase
+    jwt.verify(token, process.env.JWT_SECRET, (err, decodedUser) =>{
+        if(err){
+            return res.status(403).json({error: "access forbidden: invalid or expired token!"});
+        }
+
+        req.user = decodedUser;  //inject user details into request stream 
+        next();   //authorization approved! Pass execution to the main route controller block.
+    });
+}
+
 
 // read all users
 router.get('/', async (req, res) => {
@@ -78,7 +101,8 @@ router.put('/update/:id', async (req, res) => {
 });
 
 //delete a user
-router.delete('/delete/:id', async(req, res) =>{
+router.delete('/delete/:id', authenticateToken, async(req, res) =>{
+    //everthing stays the same, all we have to do is add one more parameter (authenticateToken) and its done 
     const userId = parseInt(req.params.id);
 
     try{

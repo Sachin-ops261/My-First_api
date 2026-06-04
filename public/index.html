@@ -3,31 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud User Management System</title>
+    <title>Enterprise Security & User Management</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class=" container">
-        <h1>Cloud User Database</h1>
-        <p class="subtitle">Connected to live cloud PostgreSQL cluster</p>
-        <form id="userForm">
-            <div class="form-group">
-                <label for="name">Full Name</label>
-                <input type="text" id="name" placeholder="e.g. Sachin" required>
+    <div class="container">
+        <h1>☁️ Secure Identity Operations</h1>
+        <p class="subtitle">Protected by Bcrypt Password Hashing & JWT Guard Rails</p>
+
+        <div class="app-layout">
+            <div class="column">
+                <div class="card" id="authCard">
+                    <h3 id="authTitle">Secure System Login</h3>
+                    
+                    <div class="toggle-container">
+                        <button id="showLoginBtn" class="toggle-btn active">Login</button>
+                        <button id="showRegisterBtn" class="toggle-btn">Create Admin</button>
+                    </div>
+
+                    <form id="authForm">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" placeholder="e.g. sachin_admin" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" id="authSubmitBtn" class="btn">Authenticate Credentials</button>
+                    </form>
+                    
+                    <div id="sessionStatus" class="session-box unauthenticated">
+                        🔒 System Status: Unauthenticated Session
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="role">Job Title / Role</label>
-                <input type="text" id="role" placeholder="e.g. Backend Lead" required>
-            </div>
-            <button type="submit" class="btn">Add to Database</button>
-        </form>
-        <div class="card">
-            <h3>Active Directory Users</h3>
-            <div id="usersList" class="users-list">
-                <p class="loading">Loading Database Connections...</p>
+
+            <div class="column">
+                <div class="card">
+                    <h3>Add New Record</h3>
+                    <form id="userForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" placeholder="e.g. Sachin" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Job Title / Role</label>
+                            <input type="text" id="role" placeholder="e.g. Full Stack Architect" required>
+                        </div>
+                        <button type="submit" class="btn">Add to Database</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Active Directory Pool</h3>
+                    <div id="usersList" class="users-list">
+                        <p class="loading">Loading database connections...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
