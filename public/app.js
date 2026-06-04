@@ -61,6 +61,16 @@ async function deleteUser(id){
 userForm.addEventListener('submit', async (e) => {
     e.preventDefault(); // Stop the webpage from forcing a hard refresh on submit
 
+    //grabs the submit button inside the form dynamically 
+    const submitBtn = userForm.querySelector('.btn');
+
+    // step 1 : disable the button and change the text to block multi-clicks
+    submitBtn.disabled= true;
+    submitBtn.innerText = "Adding to Cloud...";
+    submitBtn.style.opacity = "0.6";// make it look visually disabled
+    submitBtn.style.cursor = "not-allowed";
+
+
     const name = nameInput.value;
     const role = roleInput.value;
 
@@ -80,10 +90,17 @@ userForm.addEventListener('submit', async (e) => {
             roleInput.value = '';
             
             // Re-fetch the updated user list instantly without reloading the entire window page!
-            fetchUsers();
+            await fetchUsers();
         }
     } catch (err) {
         console.error('Error adding user:', err);
+    } finally {
+        // step 2 : re-enable the button once everthing is totally done
+        //putting this in 'finally' ensures the button unlocks even if the network fails
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Add to Database";
+        submitBtn.style.opacity = "1";
+        submitBtn.style.cursor = "pointer"; 
     }
 });
 
