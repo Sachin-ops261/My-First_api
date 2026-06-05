@@ -36,26 +36,62 @@ showRegisterBtn.addEventListener('click', () => {
     authSubmitBtn.innerText = "Generate Encrypted Account";
 });
 
-// Update UI view based on whether a valid token exists in memory
-function updateSessionUI() {
+// Helper function to check if the stored token is mathematically expired
+function isTokenExpired() {
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('username');
-    
-    if (token) {
-        sessionStatus.className = "session-box authenticated";
-        sessionStatus.innerHTML = `🔓 Authenticated: ${storedUser} <button onclick="logout()" style="margin-left:10px; background:none; border:none; color:#f87171; cursor:pointer; text-decoration:underline;">Logout</button>`;
-        fetchUsers();
-    } else {
-        sessionStatus.className = "session-box unauthenticated";
-        sessionStatus.innerText = "🔒 System Status: Unauthenticated Session";
+    if (!token) return true; // No token means it's effectively expired/empty
+
+    try {
+        // A JWT token is split by periods: Header.Payload.Signature
+        // We grab the middle section (index 1), decode the base64 string, and parse the JSON
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        
+        // payload.exp is in seconds, Date.now() is in milliseconds
+        const currentTime = Date.now() / 1000;
+        return payload.exp < currentTime; 
+    } catch (e) {
+        return true; // If decoding fails, treat it as expired/broken
     }
 }
 
+// Master UI Sync: Checks token validity and aligns the whole screen layout automatically
+function updateSessionUI() {
+    const storedUser = localStorage.getItem('username');
+    const tokenExpired = isTokenExpired();
+
+    // Grab all trashcan buttons currently rendered on the screen
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+
+    if (!tokenExpired) {
+        // --- STATE A: USER IS AUTHENTICATED AND VALID ---
+        sessionStatus.className = "session-box authenticated";
+        sessionStatus.innerHTML = `🔓 Authenticated: ${storedUser} <button onclick="logout()" style="margin-left:10px; background:none; border:none; color:#f87171; cursor:pointer; text-decoration:underline;">Logout</button>`;
+        
+        // Instantly make all delete buttons visible
+        deleteButtons.forEach(btn => btn.classList.remove('hidden'));
+    } else {
+        // --- STATE B: NO TOKEN OR TOKEN EXPIRED ---
+        // If there was a token but it just expired, silently wipe it out of memory
+        if (localStorage.getItem('token')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+        }
+
+        sessionStatus.className = "session-box unauthenticated";
+        sessionStatus.innerText = "🔒 System Status: Unauthenticated Session";
+        
+        // Instantly hide all delete buttons on the screen
+        deleteButtons.forEach(btn => btn.classList.add('hidden'));
+    }
+}
+
+// Clean and simplified logout
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     updateSessionUI();
-    fetchUsers();
 }
 
 // Handle Authentication Form Submit (Login & Register Engine)
@@ -65,7 +101,6 @@ authForm.addEventListener('submit', async (e) => {
     const username = usernameInput.value;
     const password = passwordInput.value;
     
-    // Choose the target endpoint path dynamically based on state
     const targetUrl = authMode === 'login' ? '/auth/login' : '/auth/register';
     
     try {
@@ -85,16 +120,13 @@ authForm.addEventListener('submit', async (e) => {
         alert(data.message);
         
         if (authMode === 'login') {
-            // Save token and username securely in browser memory!
             localStorage.setItem('token', data.accessToken);
             localStorage.setItem('username', username);
             
-            // Wipe inputs
             usernameInput.value = '';
             passwordInput.value = '';
             updateSessionUI();
         } else {
-            // If they just registered, automatically toggle them back to login screen smoothly
             showLoginBtn.click();
             passwordInput.value = '';
         }
@@ -120,8 +152,6 @@ async function fetchUsers() {
             return;
         }
 
-        const isLogedIn = localStorage.getItem('token');
-
         users.forEach(user => {
             const userCard = document.createElement('div');
             userCard.className = 'user-item';
@@ -130,10 +160,13 @@ async function fetchUsers() {
                     <h4>${user.name}</h4>
                     <p>ID: ${user.id} • ${user.role}</p>
                 </div>
-                <button class="delete-btn ${!isLogedIn? 'hidden' : ''}" onclick="deleteUser(${user.id})">🗑️</button>
+                <button class="delete-btn hidden" onclick="deleteUser(${user.id})">🗑️</button>
             `;
             usersList.appendChild(userCard);
         });
+
+        // Sync button visibilities right after rendering the fresh list
+        updateSessionUI();
     } catch (err) {
         console.error('Error fetching profiles:', err);
         usersList.innerHTML = '<p class="loading" style="color: #ef4444;">Failed to sync data channels.</p>';
@@ -175,18 +208,16 @@ userForm.addEventListener('submit', async (e) => {
     }
 });
 
-// 3. DELETE A USER (SECURED VIA JWT HEADERS Injection)
+// 3. DELETE A USER (CLEAN & SECURED VIA JWT HEADERS)
 async function deleteUser(id) {
     if (!confirm("Are you sure you want to permanently delete this user?")) return;
 
-    // Grab the token out of localStorage memory!
     const token = localStorage.getItem('token');
 
     try {
         const response = await fetch(`/users/delete/${id}`, {
             method: 'DELETE',
             headers: {
-                // We pass our token payload down inside the headers exactly how Postman does!
                 'Authorization': `Bearer ${token}`
             }
         });
@@ -194,22 +225,21 @@ async function deleteUser(id) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Catches the '401 Missing' or '403 Expired' errors thrown by our backend middleware!
             alert(`⚠️ Action Blocked: ${data.error}`);
-            if (response.status === 403 || (data.error && data.error.toLowerCase().includes('expired'))) {
-                console.log("Detected expired session token. Resetting layout state...");
-                logout(); // this clears localStorage, hides buttons, and updates the lock image
-            }
             return;
         }
 
-        // Successfully cleared gate
         fetchUsers();
     } catch (err) {
         console.error('Deletion Exception:', err);
     }
 }
 
-// Core Boot Initializer Loop
-updateSessionUI();
+// --- INITIALIZER & AUTOMATED POLLING ---
 fetchUsers();
+updateSessionUI();
+
+// 🔄 THE POLLING ENGINE: Evaluates token expiration and flips visibility every 1 second!
+setInterval(() => {
+    updateSessionUI();
+}, 1000);
